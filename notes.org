@@ -1,0 +1,261 @@
+These are the relationships for the tables in this lesson which include the 'games' and 'review' tables:
+- A game has many reviews
+- A game has many users, through reviews
+- A review belongs to a game
+- A review belongs to a user
+- A user has many reviews
+- A user has many games, through reviews
+
+I then used the following command to create the 'create_users' migration:
+#+begin_src bash
+samuelbanya@Samuels-MBP ~/hub/Development/code/phase-3/phase-3-active-record-associations-many-to-many $ bundle exec rake db:create_migration NAME=create_users
+
+db/migrate/20220903145029_create_users.rb
+#+end_src
+
+I then placed the following contents inside the 'db/migrate/20220903145029_create_users.rb' migration file so that I can create the 'CreateUsers' table accordingly:
+#+begin_src ruby
+class CreateUsers < ActiveRecord::Migration[6.1]
+  def change
+    create_table :users do |t|
+      t.string :name
+      t.timestamps
+    end
+  end
+end
+#+end_src
+
+I then created another migration so that I can modify the 'reviews' table to add a foreign key to refer to the 'users' table:
+#+begin_src bash
+samuelbanya@Samuels-MBP ~/hub/Development/code/phase-3/phase-3-active-record-associations-many-to-many $ bundle exec rake db:create_migration NAME=add_user_id_to_reviews
+
+db/migrate/20220903145539_add_user_id_to_reviews.rb
+#+end_src
+
+I then placed the following contents within the 'db/migrate/20220903145539_add_user_id_to_reviews.rb' migration file:
+#+begin_src ruby
+class AddUserIdToReviews < ActiveRecord::Migration[6.1]
+  def change
+    add_column :reviews, :user_id, :integer
+  end
+end
+#+end_src
+
+I then ran the migration with the 'bundle exec rake db:migrate' command:
+#+begin_src bash
+samuelbanya@Samuels-MBP ~/hub/Development/code/phase-3/phase-3-active-record-associations-many-to-many $ bundle exec rake db:migrate
+== 20210719113216 CreateGames: migrating ======================================
+-- create_table(:games)
+   -> 0.0021s
+== 20210719113216 CreateGames: migrated (0.0021s) =============================
+
+== 20210719113221 CreateReviews: migrating ====================================
+-- create_table(:reviews)
+   -> 0.0009s
+== 20210719113221 CreateReviews: migrated (0.0011s) ===========================
+
+== 20220903145029 CreateUsers: migrating ======================================
+-- create_table(:users)
+   -> 0.0008s
+== 20220903145029 CreateUsers: migrated (0.0009s) =============================
+
+== 20220903145539 AddUserIdToReviews: migrating ===============================
+-- add_column(:reviews, :user_id, :integer)
+   -> 0.0017s
+== 20220903145539 AddUserIdToReviews: migrated (0.0018s) ======================
+#+end_src
+
+I then seeded the database with the 'bundle exec rake db:seed' command:
+#+begin_src bash
+samuelbanya@Samuels-MBP ~/hub/Development/code/phase-3/phase-3-active-record-associations-many-to-many $ bundle exec rake db:seed
+🌱 Seeding data...
+🌱 Done seeding!
+#+end_src
+
+I modified the existing 'Review' model in the 'app/models/review.rb' file so that I could update the relationship to also include the 'User' table:
+#+begin_src ruby
+class Review < ActiveRecord::Base
+  belongs_to :game
+  # NEW:
+  # This is used so that we can include the relationship to the 'User' class instance / 'users' table:
+  belongs_to :user
+end
+#+end_src
+
+I then tested out this method using 'bundle exec rake console':
+#+begin_src ruby
+samuelbanya@Samuels-MBP ~/hub/Development/code/phase-3/phase-3-active-record-associations-many-to-many $ bundle exec rake console
+
+[1] pry(main)> # Get a game instance
+[2] pry(main)> game = Game.first()
+
+D, [2022-09-03T11:03:07.690863 #5874] DEBUG -- :    (1.6ms)  SELECT sqlite_version(*)
+D, [2022-09-03T11:03:07.692487 #5874] DEBUG -- :   Game Load (0.1ms)  SELECT "games".* FROM "games" ORDER BY "games"."id" ASC LIMIT ?  [["LIMIT", 1]]
+=> #<Game:0x00007fe5062d6688
+ id: 1,
+ title: "Call of Duty: Black Ops III",
+ genre: "Real-time tactics",
+ platform: "Xbox 360",
+ price: 0,
+ created_at: 2022-09-03 14:58:42.839941 UTC,
+ updated_at: 2022-09-03 14:58:42.839941 UTC>
+
+[3] pry(main)> # Create a User instance:
+[4] pry(main)> user = User.create(name: "Liza")
+
+D, [2022-09-03T11:03:28.424647 #5874] DEBUG -- :   TRANSACTION (0.0ms)  begin transaction
+D, [2022-09-03T11:03:28.425789 #5874] DEBUG -- :   User Create (0.8ms)  INSERT INTO "users" ("name", "created_at", "updated_at") VALUES (?, ?, ?)  [["name", "Liza"], ["created_at", "2022-09-03 15:03:28.424110"], ["updated_at", "2022-09-03 15:03:28.424110"]]
+D, [2022-09-03T11:03:28.427348 #5874] DEBUG -- :   TRANSACTION (1.2ms)  commit transaction
+=> #<User:0x00007fe50a3110b8
+ id: 1,
+ name: "Liza",
+ created_at: 2022-09-03 15:03:28.42411 UTC,
+ updated_at: 2022-09-03 15:03:28.42411 UTC>
+[5] pry(main)> # Create a review that belongs to a game and a user:
+[6] pry(main)> review = Review.create(score: 8, game_id: game.id, user_id: user.id)
+D, [2022-09-03T11:04:03.151259 #5874] DEBUG -- :   TRANSACTION (0.0ms)  begin transaction
+D, [2022-09-03T11:04:03.151998 #5874] DEBUG -- :   Review Create (0.5ms)  INSERT INTO "reviews" ("score", "game_id", "created_at", "updated_at", "user_id") VALUES (?, ?, ?, ?, ?)  [["score", 8], ["game_id", 1], ["created_at", "2022-09-03 15:04:03.150857"], ["updated_at", "2022-09-03 15:04:03.150857"], ["user_id", 1]]
+D, [2022-09-03T11:04:03.153569 #5874] DEBUG -- :   TRANSACTION (1.3ms)  commit transaction
+=> #<Review:0x00007fe50b2849c8
+ id: 161,
+ score: 8,
+ comment: nil,
+ game_id: 1,
+ created_at: 2022-09-03 15:04:03.150857 UTC,
+ updated_at: 2022-09-03 15:04:03.150857 UTC,
+ user_id: 1>
+
+[7] pry(main)> # Accessing data about its game:
+[8] pry(main)> review.game()
+
+D, [2022-09-03T11:05:07.842979 #5874] DEBUG -- :   Game Load (0.2ms)  SELECT "games".* FROM "games" WHERE "games"."id" = ? LIMIT ?  [["id", 1], ["LIMIT", 1]]
+=> #<Game:0x00007fe507462fa0
+ id: 1,
+ title: "Call of Duty: Black Ops III",
+ genre: "Real-time tactics",
+ platform: "Xbox 360",
+ price: 0,
+ created_at: 2022-09-03 14:58:42.839941 UTC,
+ updated_at: 2022-09-03 14:58:42.839941 UTC>
+
+[9] pry(main)> # Accessing data about its user:
+[10] pry(main)> review.user()
+
+D, [2022-09-03T11:05:20.221270 #5874] DEBUG -- :   User Load (0.2ms)  SELECT "users".* FROM "users" WHERE "users"."id" = ? LIMIT ?  [["id", 1], ["LIMIT", 1]]
+=> #<User:0x00007fe50a36a870
+ id: 1,
+ name: "Liza",
+ created_at: 2022-09-03 15:03:28.42411 UTC,
+ updated_at: 2022-09-03 15:03:28.42411 UTC>
+#+end_src
+
+NOTE:
+- The 'Review' class in this example is the 'Join' class
+- This is because we are using it to join between two other classes in the application
+
+I then established the 'many-to-many' association via the 'has_many through' macro with the 'Game' class since the a game has many users, through reviews.
+
+This was done by modifying the 'app/models/game.rb file with the following contents which allows us to go THROUGH the 'join model' aka 'Review' from the 'Game' model to return the related users:
+
+NOTE: Also, you NEED to use to reference the 'join table' ABOVE the 'through:' statement otherwise it won't work, so it needs this exact pattern:
+#+begin_src ruby
+class Game < ActiveRecord::Base
+  # NOTE: This allows us to use the '.review()' method to access all of its associated reviews:
+  # NOTE: This is necessary to declare the 'join table' we need to provide for the
+  # 'has_many' macro:
+  has_many :reviews
+  # Here we are providing the key-value pair, key: 'through' option, value: ':reviews' symbol
+  # which refers to the '#reviews' method above:
+  has_many :users, through: :reviews
+
+  # NOTE: The use of the second 'has_many' macro for the ':users, through: :reviews' section
+  # is to prevent us from having to write this exact SQL statement:
+  # SELECT "users".*
+  # FROM "users"
+  # INNER JOIN "reviews"
+  # ON "users"."id" = "reviews"."user_id"
+  # WHERE "reviews"."game_id" = 1
+end
+#+end_src
+
+I then tried out the changes with the 'bundle exec rake console':
+#+begin_src ruby
+samuelbanya@Samuels-MBP ~/hub/Development/code/phase-3/phase-3-active-record-associations-many-to-many $ bundle exec rake console
+
+[1] pry(main)> game = Game.first()
+
+D, [2022-09-03T11:14:08.191578 #6046] DEBUG -- :    (1.7ms)  SELECT sqlite_version(*)
+D, [2022-09-03T11:14:08.194178 #6046] DEBUG -- :   Game Load (0.1ms)  SELECT "games".* FROM "games" ORDER BY "games"."id" ASC LIMIT ?  [["LIMIT", 1]]
+=> #<Game:0x00007ff2bf20a7b0
+ id: 1,
+ title: "Call of Duty: Black Ops III",
+ genre: "Real-time tactics",
+ platform: "Xbox 360",
+ price: 0,
+ created_at: 2022-09-03 14:58:42.839941 UTC,
+ updated_at: 2022-09-03 14:58:42.839941 UTC>
+
+[2] pry(main)> game.users()
+
+D, [2022-09-03T11:14:12.633026 #6046] DEBUG -- :   User Load (0.1ms)  SELECT "users".* FROM "users" INNER JOIN "reviews" ON "users"."id" = "reviews"."user_id" WHERE "reviews"."game_id" = ?  [["game_id", 1]]
+=> [#<User:0x00007ff2bb254990
+  id: 1,
+  name: "Liza",
+  created_at: 2022-09-03 15:03:28.42411 UTC,
+  updated_at: 2022-09-03 15:03:28.42411 UTC>]
+#+end_src
+
+I then setup the inverse relationship, aka to modify the 'app/models/user.rb' file so that the 'User' class instance can use the 'reviews' table as the 'join table', and by virtue of doing so, can utilize the '.games()' method to determine what games are associated with the given user instance:
+#+begin_src ruby
+class User < ActiveRecord::Base
+  # This is to establish the 'reviews' table as the 'join table':
+  has_many :reviews
+  # This is so that we can utilize the '.games()' method as a result of the association
+  # with the 'reviews' table:
+  has_many :games, through: :reviews
+end
+#+end_src
+
+I then tested this out within the 'bundle exec rake console' method:
+#+begin_src ruby
+samuelbanya@Samuels-MBP ~/hub/Development/code/phase-3/phase-3-active-record-associations-many-to-many $ bundle exec rake console
+
+[1] pry(main)> user = User.first()
+
+D, [2022-09-03T11:26:33.766505 #6311] DEBUG -- :    (1.5ms)  SELECT sqlite_version(*)
+D, [2022-09-03T11:26:33.768630 #6311] DEBUG -- :   User Load (0.1ms)  SELECT "users".* FROM "users" ORDER BY "users"."id" ASC LIMIT ?  [["LIMIT", 1]]
+=> #<User:0x00007fa840b214f8
+ id: 1,
+ name: "Liza",
+ created_at: 2022-09-03 15:03:28.42411 UTC,
+ updated_at: 2022-09-03 15:03:28.42411 UTC>
+
+[2] pry(main)> user.reviews()
+
+D, [2022-09-03T11:26:37.854581 #6311] DEBUG -- :   Review Load (0.1ms)  SELECT "reviews".* FROM "reviews" WHERE "reviews"."user_id" = ?  [["user_id", 1]]
+=> [#<Review:0x00007fa845238dc8
+  id: 161,
+  score: 8,
+  comment: nil,
+  game_id: 1,
+  created_at: 2022-09-03 15:04:03.150857 UTC,
+  updated_at: 2022-09-03 15:04:03.150857 UTC,
+  user_id: 1>]
+
+[3] pry(main)> user.games()
+
+D, [2022-09-03T11:26:44.814174 #6311] DEBUG -- :   Game Load (0.3ms)  SELECT "games".* FROM "games" INNER JOIN "reviews" ON "games"."id" = "reviews"."game_id" WHERE "reviews"."user_id" = ?  [["user_id", 1]]
+=> [#<Game:0x00007fa845261570
+  id: 1,
+  title: "Call of Duty: Black Ops III",
+  genre: "Real-time tactics",
+  platform: "Xbox 360",
+  price: 0,
+  created_at: 2022-09-03 14:58:42.839941 UTC,
+  updated_at: 2022-09-03 14:58:42.839941 UTC>]
+#+end_src
+
+Here are other really good examples that the assignment actually provided for 'many-to-many' relationships:
+- Driver -< Ride >- Passenger
+- Doctor -< Appointment >- Patient
+- Actor -< Character >- Movie
